@@ -4,6 +4,7 @@
 - `whoami` hiển thị username, trong trường hợp sử dụng nhiều user
 - `echo "Hello"` in ra màn hình
   - `echo "Hello" > file.txt` sẽ ghi _Hello_ vào cuối file.txt
+  - `-e` cho phép đọc các dấu \, ví dụ như \n là xuống dòng
 # Wildcard
 - `*` chọn tất cả các file và thư mục
   - `mv dir/*` di chuyển toàn bộ bên trong thư mục nguồn
