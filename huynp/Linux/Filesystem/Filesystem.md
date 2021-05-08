@@ -10,7 +10,7 @@ Có nhiều dạng file hệ thống trong Linux, mỗi loại sẽ được áp
 
 **Alternate filesystems** 
 - swap: không thực sự là 1 dạng file hệ thống, bởi cơ chế hoạt động khá khác biệt. Được sử dụng dưới dạng bộ nhớ ảo và được dùng bởi kernel để ghi thay đổi vào ổ cứng. Thông thường, nó chỉ được sử dụng khi hệ thống thiếu hụt bộ nhớ RAM
-- XFS: là một trong những dạng filesystem chính của Linux mà không thuộc ext, có hỗ trợ journaling cùng với hiệu suất và tính đồng thời cao dành cho những hệ thống file lớn
+- XFS: là một trong những dạng filesystem chính của Linux mà không thuộc ext, có hỗ trợ journaling cùng với hiệu suất và tính đồng thời cao dành cho những hệ thống file lớn. Hiện đang là dạng filesystem mặc định của Red Hat Linux
 - Btrfs,JFS,BFS,...
 
 Hoặc một số loại của Windows như: ntfs, vfat
