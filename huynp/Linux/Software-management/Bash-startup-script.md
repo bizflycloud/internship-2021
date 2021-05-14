@@ -3,7 +3,7 @@ Nhằm thay thế cho những tập lệnh lặp lại, chỉ cần viết một
 Một file script trên môi trường linux có đuôi .sh và .bat trên môi trường windows.
 
 ## Tạo bash script
-1. Tạo một file script.sh:
+1. **Tạo** một file script.sh:
 
 ```#!/bin/bash
 echo “Hello World !”
@@ -11,11 +11,12 @@ echo “Hello World !”
 
 Trong đó, dòng đầu tiên để khai báo loại ngôn ngữ sử dụng là bash, sau dấu #! là đường dẫn trỏ đến lệnh bash.
 
-2. Thực thi script:
+2. **Thực thi script**:
+- Cách 1:
 
 `bash script.sh`
 
-3. Cách thực thi 2:
+- Cách 2:
 Cấp quyền execute cho nó bằng lệnh
 `chmod +x  script.sh`
 Sau đó chạy bằng lệnh sẽ cho ra kết quả tương tự
@@ -28,7 +29,7 @@ Gồm 4 kiểu biến dữ liệu:
 - Array
 - Constant
 
-1. Khai báo sẵn
+1. **Khai báo sẵn**
 Ví dụ với kiểu int và str:
 ```
 name=”huy”
@@ -39,7 +40,7 @@ echo $age
 
 Khi chạy `./script.sh` sẽ cho ra kết quả dữ liệu của biến name và age.
 
-2. Truyền tham số
+2. **Truyền tham số**
 ```
 name=$1
 age=$2
@@ -51,7 +52,7 @@ Truyền tham số vào name và age:
 
 `./script.sh huy 22` 
 
-3. Ví dụ
+3. **Ví dụ**
 
 Thực hiện phép tính `a*(b+c)`
 ```
@@ -78,3 +79,24 @@ sẽ cho ra kết quả
 Bang khong
 ```
 với `-eq` = **eq**ual, `-ge` = **g**reater than or **e**qual,...
+
+# Startup script
+Có nhiều cách chạy một script mỗi khi khởi động hoặc reboot máy như `crontab -e`, nhưng ví dụ ở đây sẽ làm việc với `systemd` vì cho [độ tin cậy cao nhất](https://transang.me/create-startup-scripts-in-ubuntu/#method-3-inconsistent-create-a-shell-startup-script).
+
+1. Bash script sau dùng để in ra màn hình chuỗi ký tự mỗi khi một người dùng đăng nhập, bằng cách truyền vào `/etc/motd` (message of the day):
+
+![Alt](https://raw.githubusercontent.com/huynp1999/huynp/master/pic/startup3.png)
+
+2. Tạo một file .service tại `/etc/systemd/system` với nội dung cơ bản gồm:
+- thông tin
+- đường dẫn file script
+- áp dụng cho đa người dùng 
+
+![Alt](https://raw.githubusercontent.com/huynp1999/huynp/master/pic/startup2.png)
+
+File .service này cần được cấp quyền `chmod -x` để có thể thực hiện `systemctl enable`.
+
+3. Kết quả:
+
+![Alt](https://raw.githubusercontent.com/huynp1999/huynp/master/pic/startup1.png)
+
