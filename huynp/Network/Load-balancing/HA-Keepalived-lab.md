@@ -33,8 +33,8 @@ Cấu hình webbackend 1 và 2 tại `/etc/keepalived/keepalived.conf` với n�
       vrrp_instance VI_1 {
         virtual_router_id 51
         advert_int 1
-        priority 100
-        state MASTER                  #khai báo trạng thái của webserver 1 là MASTER, 2 là BACKUP dành cho dự phòng
+        priority 100                  #set độ ưu tiên với backend 1 là 100, 2 là 99
+        state MASTER                  #khai báo trạng thái của backend 1 là MASTER, 2 là BACKUP dành cho dự phòng
         interface ens3                #thông tin tên interface của server, bạn dùng lệnh `ifconfig` để xem và điền cho đúng
         virtual_ipaddress {
           192.168.1.254               #khai báo Virtual IP cho interface tương ứng và dùng IP này listen trên HAproxy
