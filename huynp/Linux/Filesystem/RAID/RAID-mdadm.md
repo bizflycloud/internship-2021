@@ -40,7 +40,7 @@ Cần tối thiểu 4 ổ và chỉ sử dụng 50% dung lượng (mirroring). P
 ### RAID 5
 <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/RAID_5.svg/800px-RAID_5.svg.png" alt="drawing" width="400"/>
 
-Hoạt động theo kỹ thuật Parity. Nếu một ổ cứng bị hỏng, dữ liệu được xây dựng lại dựa trên các thông tin còn lại trên các ổ đĩa tốt còn lại. Điều này sẽ bảo vệ dữ liệu của chúng ta khi ổ đĩa bị lỗi. 
+Hoạt động theo kỹ thuật Parity. Nếu một ổ cứng bị hỏng, dữ liệu được xây dựng lại dựa trên các thông tin đã được lưu trên các ổ đĩa tốt còn lại. Đảm bảo cho dữ liệu khi bất kì một ổ đĩa nào bị lỗi. 
 - **Ưu điểm**: nâng cao hiệu suất, an toàn dữ liệu
 - **Nhược điểm**: giá thành cao, hiệu quả thực thi giảm trong quá trình phục hồi
 
@@ -51,35 +51,8 @@ Cần tối thiểu 3 ổ, 2 ổ để striping, 1 ổ để phân phối parity
 <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/RAID_6.svg/1024px-RAID_6.svg.png" alt="drawing" width="500"/>
 
 Hoạt động tương tự như RAID 5 nhưng với double Parity
-- **Ưu điểm**: sử dụng trong mảng lớn với khả năng khôi hồi lớn
+- **Ưu điểm**: sử dụng trong mảng lớn với khả năng khôi phục lớn
 - **Nhược điểm**: tốc độ, hiệu suất kém so với RAID 5
 
 Cần tối thiểu 4 ổ để đáp ứng double parity. 
-## mdadm quản lý RAID
-RAID được quản lý bằng gói `mdadm` trong hầu hết các bản phân phối Linux.
 
-Các chế độ hoạt động:
-- Assemble: kết hợp những mảng đã tạo thành mảng hoạt động
-- Build: tạo một mảng mới không có superblock (là một khoảng được tạo trên mỗi thiết bị, chứa thông tin về thiết bị RAID và cho phép sửa chữa việc ghép mảng) 
-- Create: tạo một mảng mới có superblock
-- Monitor: theo dõi sự thay đổi của một hoặc nhiều thiết bị
-- Grow: thay đổi kích thước mảng 
-- Manage: quản lý các thiết bị như thêm mới hoặc xóa
-- Misc: xóa các superblock cũ và thu thập dữ liệu
-- Auto-detect: yêu cầu kernel Linux kích hoạt các mảng
-
-
-Các option:
-- `-C` tạo RAID mới.
-- `-l` level của RAID.
-- `-n` thiết bị dành RAID (là 2 phân vùng vừa tạo)
-- `-E` kiểm tra thông tin
-
-Tạo RAID:
-Trước tiên cần phải phân vùng từ những ổ cứng, ví dụ với RAID 0 cần phải có ít nhất 2 ổ cứng.
-
-Tạo RAID 0 từ 2 phân vùng vừa tạo và kiểm tra
-```
-mdadm -C /dev/md0 -l raid0 -n 2 /dev/sd[b-c]1
-mdadm -E /dev/sd[b-c]1
-```
