@@ -13,18 +13,18 @@ int main(int argc, char * argv[]){
     // unsigned char *buf;
     char *buf;
     struct timeb start,end;
+    srand(time(NULL));
 
     ftime(&start);
 
-    fo = open(argv[1], O_CREAT | O_WRONLY | O_SYNC);
+    fo = open(argv[1], O_CREAT | O_WRONLY | O_DSYNC);
     buf_size=atof(argv[2]);
     buf= (char *) malloc (buf_size); //cap phat bo nho buffer dua tren dung luong file
-    
-    for(i=0; i < buf_size; i++)
-        memset(buf, rand(), 1); //ghi du lieu vao buffer de sau day vao file
 
+    memset(buf, 'A', buf_size); //ghi random du lieu vao buffer de sau day vao file
+    
     ret= write(fo,buf,buf_size); //ghi du lieu tu buffer vao file
-    //fs
+    //fdatasync(fo);
     ftime(&end);
 
     float write_time=end.time-start.time; //tinh thoi gian ghi theo giay
