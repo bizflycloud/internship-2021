@@ -1,6 +1,4 @@
 # OSD Backends
-![image](https://user-images.githubusercontent.com/83684068/128842467-5439240c-f90d-46bf-a983-55f729de5708.png)
-
 Trong ceph osd daemon có một module quan trọng được gọi là ObjectStore, chịu trách nhiệm về cách thức lưu trữ và quản lý object. Ceph được thiết kế để hỗ trợ nhiều công cụ lưu trữ bằng cách đăng ký chúng như là các backend khác nhau cho ObjectStore.
 
 Đối với Ceph có 2 loại backend FileStore và BlueStore. Ngoài ra còn có KStore được thử nghiệm trong phiên bản Jewel nhưng đã không còn sử dụng.
@@ -14,6 +12,11 @@ BlueStore ghi trực tiếp object lên thiết bị vật lý và quản lý me
 Trong trường hợp đơn giản nhất, BlueStore sử dụng một thiết bị lưu trữ duy nhất hay còn gọi là thiết bị chính. Thiết bị này sẽ áp dụng toàn bộ dung lượng lưu trữ của nó và được quản lý trực tiếp bởi BlueStore. Thiết bị này thường được xác định bởi một `block` symlink trong thư mục dữ liệu.
 
 Thư mục dữ liệu là một `tmpfs` mount để đặt với tất cả các thông tin cần thiết về OSD như: mã định danh của nó, thuộc về cluster nào và private keyring.
+
+    # df -h
+    Filesystem      Size  Used Avail Use% Mounted on
+    tmpfs           953M   24K  953M   1% /var/lib/ceph/osd/ceph-1
+    tmpfs           953M   24K  953M   1% /var/lib/ceph/osd/ceph-0
 
 Cũng có thể triển khai BlueStore trên một hoặc hai thiết bị bổ sung:
 
@@ -61,17 +64,21 @@ Quy trình thực hiện của câu lệnh `create` bao gồm 2 phần là prepa
 7. Thiết bị được mount và thư mục dữ liệu được liên kết bởi ceph-osd
 8. Gán LVM tag cho data và journal của OSD
 
-Những LVM tag sau sẽ được thêm vào:
+Với backend là Bluestore thì một số LVM tag sau sẽ được thêm vào:
 
-- cluster_fsid
-- data_device
-- journal_device
-- encrypted
-- osd_fsid
-- osd_id
-- journal_uuid
+- `block_device` đường dẫn tới logical volume
+- `block_uuid` id nhận dạng duy nhất của logical volume
+- `cephx_lockbox_secret` là nơi chứa auth key để xác thực cho `dmcrypt_key` trong việc mở khoá thiết bị mã hoá
+- `cluster_fsid` id nhận dạng duy nhất của cluster
+- `cluster_name` tên cluster
+- `encrypted` bằng 1 nếu sử dụng option mã hoá `--dmcrypt` khi tạo OSD
+- `osd_fsid` id nhận dạng duy nhất của osd
+- `osdspec_affinity`
+- `vdo (Virtual Data Optimizer)` nếu có sẵn
 
-Có thể check những LVM tag bằng câu lệnh `ceph-volume lvm list`
+- Note: Với Filestore sẽ có thêm tag `journal_device` vì Filestore yêu cầu xử lý journal riêng biệt với data. Khi sử dụng thêm các thiết bị bổ sung như WAL hoặc DB thì cũng có tag `wal_device` và `db_device`
+
+Có thể check những LVM tag bằng câu lệnh `ceph-volume lvm list`.
 
     root@ceph01:/var/lib/ceph/osd# ceph-volume lvm list
     
@@ -93,32 +100,51 @@ Có thể check những LVM tag bằng câu lệnh `ceph-volume lvm list`
           vdo                       0
           devices                   /dev/sdb
 
-    ====== osd.1 =======
+Show các LVM tag theo fomart JSON cũng nhận được những tag tương tự:
 
-      [block]       /dev/ceph-aa7221d6-7879-4f2c-8e5d-f9ed131f21c4/osd-block-2135b85a-cb38-4275-a249-0d883c4acd48
-
-          block device              /dev/ceph-aa7221d6-7879-4f2c-8e5d-f9ed131f21c4/osd-block-2135b85a-cb38-4275-a249-0d883c4acd48
-          block uuid                mLCwfa-5xbP-XFxJ-zwnz-fi26-e9Uk-pyhmnj
-          cephx lockbox secret
-          cluster fsid              523677df-def2-4a84-90d2-9910ed6233f2
-          cluster name              ceph
-          crush device class        None
-          encrypted                 0
-          osd fsid                  2135b85a-cb38-4275-a249-0d883c4acd48
-          osd id                    1
-          osdspec affinity
-          type                      block
-          vdo                       0
-          devices                   /dev/sdc
-
+    root@ceph01:~# ceph-volume lvm list --format=json
+    {
+        "0": [
+            {
+                "devices": [
+                    "/dev/sdb"
+                ],
+                "lv_name": "osd-block-26f73ff2-5461-42c9-b70a-3e6e38b6a785",
+                "lv_path": "/dev/ceph-0cbd51ad-a42d-49e0-96bb-d8160818a6c5/osd-block-26f73ff2-5461-42c9-b70a-3e6e38b6a785",
+                "lv_size": "21470642176",
+                "lv_tags": "ceph.block_device=/dev/ceph-0cbd51ad-a42d-49e0-96bb-d8160818a6c5/osd-block-26f73ff2-5461-42c9-b70a-3e6e38b6a785,ceph.block_uuid=r4883N-eDlP-inoG-ucWS-A9Gg-2dSj-eWE6WM,ceph.cephx_lockbox_secret=,ceph.cluster_fsid=523677df-def2-4a84-90d2-9910ed6233f2,ceph.cluster_name=ceph,ceph.crush_device_class=None,ceph.encrypted=0,ceph.osd_fsid=26f73ff2-5461-42c9-b70a-3e6e38b6a785,ceph.osd_id=0,ceph.osdspec_affinity=,ceph.type=block,ceph.vdo=0",
+                "lv_uuid": "r4883N-eDlP-inoG-ucWS-A9Gg-2dSj-eWE6WM",
+                "name": "osd-block-26f73ff2-5461-42c9-b70a-3e6e38b6a785",
+                "path": "/dev/ceph-0cbd51ad-a42d-49e0-96bb-d8160818a6c5/osd-block-26f73ff2-5461-42c9-b70a-3e6e38b6a785",
+                "tags": {
+                    "ceph.block_device": "/dev/ceph-0cbd51ad-a42d-49e0-96bb-d8160818a6c5/osd-block-26f73ff2-5461-42c9-b70a-3e6e38b6a785",
+                    "ceph.block_uuid": "r4883N-eDlP-inoG-ucWS-A9Gg-2dSj-eWE6WM",
+                    "ceph.cephx_lockbox_secret": "",
+                    "ceph.cluster_fsid": "523677df-def2-4a84-90d2-9910ed6233f2",
+                    "ceph.cluster_name": "ceph",
+                    "ceph.crush_device_class": "None",
+                    "ceph.encrypted": "0",
+                    "ceph.osd_fsid": "26f73ff2-5461-42c9-b70a-3e6e38b6a785",
+                    "ceph.osd_id": "0",
+                    "ceph.osdspec_affinity": "",
+                    "ceph.type": "block",
+                    "ceph.vdo": "0"
+                },
+                "type": "block",
+                "vg_name": "ceph-0cbd51ad-a42d-49e0-96bb-d8160818a6c5"
+            }
+        ],
 
 Tới phần active, sẽ sử dụng những gì đã được tạo sẵn để kích hoạt đưa vào sử dụng ceph-osd
 
 1. Yêu cầu id OSD và uuid OSD
 2. Bật systemd unit theo với id và uuid tương thích
-3. Systemd unit sẽ đảm bảo tất cả các thiết bị đã được mount và sẵn sàng
-4. Systemd unit `ceph-osd` được khởi động
+3. Systemd unit sẽ đảm bảo tất cả các thiết bị nhận dạng đã được mount và sẵn sàng
 
+        #  systemctl | grep ceph
+        var-lib-ceph-osd-ceph\x2d0.mount                           loaded active mounted   /var/lib/ceph/osd/ceph-0
+        var-lib-ceph-osd-ceph\x2d1.mount                           loaded active mounted   /var/lib/ceph/osd/ceph-1
+5. Systemd unit `ceph-osd` được khởi động
 
 # FileStore
 Trong FileStore, các object được lưu với một file riêng lẻ.
@@ -133,6 +159,11 @@ Và trong FileStore, transaction sẽ được chia thành data và metadata. Da
 
 FileStore đã được thử nghiệm tốt và sử dụng rộng rãi trong thị trường. Tuy nhiên, nó có nhiều khiếm khuyết về hiệu suất do thiết kế tổng thể và sự phụ thuộc vào file system truyền thống để lưu trữ object data.
 
+# So sánh giữa Filestore và Bluestore
+![image](https://user-images.githubusercontent.com/83684068/128842467-5439240c-f90d-46bf-a983-55f729de5708.png)
+
 **Điểm khác biệt chính** giữa 2 loại module là với FileStore, object phải ghi 2 lần: 1 lần vào journal và 1 lần vào disk. Đối với BlueStore ghi trực tiếp object lên disk và quá trình quản lý metadata cũng được tối giản hơn khi so với Filestore.
 
+Benchmark hiệu năng bằng radosbench, với 7 client cùng write vào object store. Cột xanh là tốc độ ghi (mbps) của Filestore, cột đỏ là tốc độ ghi (mbps) của Bluestore. Dòng kẻ màu xanh lá biểu thị cho phần trăm hiệu suất vượt trội của Bluestore, bắt đầu từ 40% của client đầu tiên tới cao nhất 42%. Có thể thấy Bluestore về cơ bản có tốc độ hoạt động tốt hơn đáng kể so với Filestore.
 
+![image](https://user-images.githubusercontent.com/83684068/129704558-8585b415-21fc-493c-9d2e-ffbd9e62418b.png)
