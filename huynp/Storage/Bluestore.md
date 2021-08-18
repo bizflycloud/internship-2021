@@ -39,13 +39,13 @@ Sau khi triển khai một OSD thì thư mục dữ liệu sẽ như sau
 
     # root@ceph01:~# ls -l /var/lib/ceph/osd/ceph-1
     total 24
-    lrwxrwxrwx 1 ceph ceph 93 Aug 16 02:38 block -> /dev/ceph-aa7221d6-7879-4f2c-8e5d-f9ed131f21c4/osd-block-2135b85a-cb38-4275-a249-0d883c4acd48
-    -rw------- 1 ceph ceph 37 Aug 16 02:38 ceph_fsid
-    -rw------- 1 ceph ceph 37 Aug 16 02:38 fsid
-    -rw------- 1 ceph ceph 55 Aug 16 02:38 keyring
-    -rw------- 1 ceph ceph  6 Aug 16 02:38 ready
-    -rw------- 1 ceph ceph 10 Aug 16 02:38 type
-    -rw------- 1 ceph ceph  2 Aug 16 02:38 whoami
+    lrwxrwxrwx 1 ceph ceph 93 Aug 16 02:38 block -> /dev/ceph-aa7221d6-7879-4f2c-8e5d-f9ed131f21c4/osd-block-2135b85a-cb38-4275-a249-0d883c4acd48        #symlink từ block tới lv đã được ceph-volume tạo
+    -rw------- 1 ceph ceph 37 Aug 16 02:38 ceph_fsid                            #fsid tức là id nhận dạng duy nhất của một cluster
+    -rw------- 1 ceph ceph 37 Aug 16 02:38 fsid                                 #tương tự như trên nhưng là fsid của osd, ceph-volume sẽ tạo lg và lv dựa trên 2 fsid này
+    -rw------- 1 ceph ceph 55 Aug 16 02:38 keyring                              #khoá xác thực của OSD khi làm việc với ceph auth. Sau khi xác thực keyring, osd có thể giao tiếp với các thành phần khác trong hệ thống như client, mon
+    -rw------- 1 ceph ceph  6 Aug 16 02:38 ready                                #trạng thái hoạt động của osd (ready)
+    -rw------- 1 ceph ceph 10 Aug 16 02:38 type                                 #kiểu backend của osd, bluestore hoặc filestore
+    -rw------- 1 ceph ceph  2 Aug 16 02:38 whoami                               #id thứ tự của osd
 
 
 Tại đây có thể thấy symlink từ `block` tới `vg/lv` mà đã được `ceph-volume` tạo ra theo cú pháp:
@@ -100,50 +100,27 @@ Có thể check những LVM tag bằng câu lệnh `ceph-volume lvm list`.
           vdo                       0
           devices                   /dev/sdb
 
-Show các LVM tag theo fomart JSON cũng nhận được những tag tương tự:
+Ngoài ra các LVM tag có thể list theo fomart JSON cũng sẽ nhận được những tag tương tự `ceph-volume lvm list --format=json`. Hoặc theo lệnh lv show `lvs -o lv_tag /dev/ceph-vg/block-lv`, ví dụ xem lvm tag của osd.0:
 
-    root@ceph01:~# ceph-volume lvm list --format=json
-    {
-        "0": [
-            {
-                "devices": [
-                    "/dev/sdb"
-                ],
-                "lv_name": "osd-block-26f73ff2-5461-42c9-b70a-3e6e38b6a785",
-                "lv_path": "/dev/ceph-0cbd51ad-a42d-49e0-96bb-d8160818a6c5/osd-block-26f73ff2-5461-42c9-b70a-3e6e38b6a785",
-                "lv_size": "21470642176",
-                "lv_tags": "ceph.block_device=/dev/ceph-0cbd51ad-a42d-49e0-96bb-d8160818a6c5/osd-block-26f73ff2-5461-42c9-b70a-3e6e38b6a785,ceph.block_uuid=r4883N-eDlP-inoG-ucWS-A9Gg-2dSj-eWE6WM,ceph.cephx_lockbox_secret=,ceph.cluster_fsid=523677df-def2-4a84-90d2-9910ed6233f2,ceph.cluster_name=ceph,ceph.crush_device_class=None,ceph.encrypted=0,ceph.osd_fsid=26f73ff2-5461-42c9-b70a-3e6e38b6a785,ceph.osd_id=0,ceph.osdspec_affinity=,ceph.type=block,ceph.vdo=0",
-                "lv_uuid": "r4883N-eDlP-inoG-ucWS-A9Gg-2dSj-eWE6WM",
-                "name": "osd-block-26f73ff2-5461-42c9-b70a-3e6e38b6a785",
-                "path": "/dev/ceph-0cbd51ad-a42d-49e0-96bb-d8160818a6c5/osd-block-26f73ff2-5461-42c9-b70a-3e6e38b6a785",
-                "tags": {
-                    "ceph.block_device": "/dev/ceph-0cbd51ad-a42d-49e0-96bb-d8160818a6c5/osd-block-26f73ff2-5461-42c9-b70a-3e6e38b6a785",
-                    "ceph.block_uuid": "r4883N-eDlP-inoG-ucWS-A9Gg-2dSj-eWE6WM",
-                    "ceph.cephx_lockbox_secret": "",
-                    "ceph.cluster_fsid": "523677df-def2-4a84-90d2-9910ed6233f2",
-                    "ceph.cluster_name": "ceph",
-                    "ceph.crush_device_class": "None",
-                    "ceph.encrypted": "0",
-                    "ceph.osd_fsid": "26f73ff2-5461-42c9-b70a-3e6e38b6a785",
-                    "ceph.osd_id": "0",
-                    "ceph.osdspec_affinity": "",
-                    "ceph.type": "block",
-                    "ceph.vdo": "0"
-                },
-                "type": "block",
-                "vg_name": "ceph-0cbd51ad-a42d-49e0-96bb-d8160818a6c5"
-            }
-        ],
+    # lvs -o lv_tags /dev/ceph-0cbd51ad-a42d-49e0-96bb-d8160818a6c5/osd-block-26f73ff2-5461-42c9-b70a-3e6e38b6a785
+      LV Tags                                                                                                                                                                                                                                                                                           
+      ceph.block_device=/dev/ceph-0cbd51ad-a42d-49e0-96bb-d8160818a6c5/osd-block-26f73ff2-5461-42c9-b70a-3e6e38b6a785,ceph.block_uuid=r4883N-eDlP-inoG-ucWS-A9Gg-2dSj-eWE6WM,ceph.cephx_lockbox_secret=,ceph.cluster_fsid=523677df-def2-4a84-90d2-9910ed6233f2,ceph.cluster_name=ceph,ceph.crush_device_class=None,ceph.encrypted=0,ceph.osd_fsid=26f73ff2-5461-42c9-b70a-3e6e38b6a785,ceph.osd_id=0,ceph.osdspec_affinity=,ceph.type=block,ceph.vdo=0
 
 Tới phần active, sẽ sử dụng những gì đã được tạo sẵn để kích hoạt đưa vào sử dụng ceph-osd
 
-1. Yêu cầu id OSD và uuid OSD
-2. Bật systemd unit theo với id và uuid tương thích
-3. Systemd unit sẽ đảm bảo tất cả các thiết bị nhận dạng đã được mount và sẵn sàng
+1. Yêu cầu id OSD và fsid OSD (uuid), có thể xem chúng trong data dir
+       
+       root@ceph01:/var/lib/ceph/osd/ceph-0# cat fsid
+       26f73ff2-5461-42c9-b70a-3e6e38b6a785
+       
+       root@ceph01:/var/lib/ceph/osd/ceph-0# cat whoami
+       0
+3. Bật systemd unit theo với id và fsid tương thích
+4. Systemd unit sẽ đảm bảo tất cả các thiết bị nhận dạng đã được mount và sẵn sàng
 
-        #  systemctl | grep ceph
-        var-lib-ceph-osd-ceph\x2d0.mount                           loaded active mounted   /var/lib/ceph/osd/ceph-0
-        var-lib-ceph-osd-ceph\x2d1.mount                           loaded active mounted   /var/lib/ceph/osd/ceph-1
+       #  systemctl | grep ceph
+       var-lib-ceph-osd-ceph\x2d0.mount                           loaded active mounted   /var/lib/ceph/osd/ceph-0
+       var-lib-ceph-osd-ceph\x2d1.mount                           loaded active mounted   /var/lib/ceph/osd/ceph-1
 5. Systemd unit `ceph-osd` được khởi động
 
 # FileStore
