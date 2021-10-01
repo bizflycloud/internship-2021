@@ -1,0 +1,55 @@
+- hosts: ceph01
+  any_errors_fatal: true
+  tasks:
+    - name: Add cluster
+      shell: "ceph-deploy new {{ host | join(' ') }}"
+      
+    - name: Copy config
+      template:
+          src: templates/ceph.conf.j2
+          dest: /home/cephuser/temp.conf
+          
+    - name: Apply ceph.conf
+      shell: "cat /home/cephuser/temp.conf >> /home/cephuser/ceph.conf"
+      
+    - name: Delete temp file
+      file:
+        path: /home/cephuser/temp.conf
+        state: absent
+
+    - name: Install release
+      command: "ceph-deploy install --release nautilus {{ item }}"
+      with_items: "{{ host }}"
+ 
+    - name: Create monitor
+      command: "ceph-deploy mon create-initial"
+
+    - name: Copy ceph.conf
+      command: "ceph-deploy admin {{ item }}"
+      with_items: "{{ host }}"
+
+- hosts: all
+  any_errors_fatal: true
+  tasks:
+    - name: Chmod
+      shell: "sudo chmod +r /etc/ceph/ceph.client.admin.keyring"
+
+- hosts: ceph01
+  any_errors_fatal: true
+  tasks:
+    - name: Deploy manager
+      shell: "ceph-deploy mgr create {{ item }}"
+      with_items: "{{ host }}"
+
+- hosts: osd
+  tasks:
+    - name: Create osd keyring
+      shell: "sudo ceph-authtool --create-keyring /var/lib/ceph/bootstrap-osd/ceph.keyring --gen-key -n client.bootstrap-osd --cap mon 'profile bootstrap-osd' --cap mgr 'allow r'"
+      
+    - name: Deploy osd
+      shell: "ceph-volume lvm create --bluestore --data {{ device }}"
+      with_items:
+        - "{{ device }}"
+  
+
+
